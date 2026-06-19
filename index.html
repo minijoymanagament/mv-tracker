@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MV Tracker</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { background: #e0e0dc; font-family: -apple-system, 'Helvetica Neue', sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 20px 0 40px; }
@@ -19,6 +20,27 @@ textarea { resize: none; }
 .screen { height: 780px; overflow-y: auto; overflow-x: hidden; background: #f4f4f0; scrollbar-width: none; }
 .screen::-webkit-scrollbar { display: none; }
 .pad { padding: 0 16px 80px; }
+/* Mobile — full screen, no phone shell */
+@media (max-width: 500px) {
+  html, body { background: #f4f4f0; padding: 0; display: block; }
+  .phone { width: 100%; border-radius: 0; border: none; box-shadow: none; }
+  .notch-bar { display: none; }
+  .screen { height: 100svh; }
+}
+/* Login screen */
+.login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px 24px; text-align: center; }
+.login-logo { font-size: 32px; font-weight: 800; color: #111; letter-spacing: -1px; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: #bbb; margin-bottom: 48px; line-height: 1.5; }
+.login-btn { display: flex; align-items: center; gap: 10px; background: #fff; border: 1.5px solid #e8e8e8; border-radius: 14px; padding: 14px 22px; font-size: 14px; font-weight: 700; color: #333; cursor: pointer; width: 100%; max-width: 280px; justify-content: center; transition: border-color .15s, box-shadow .15s; }
+.login-btn:hover { border-color: #ccc; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.login-btn i { font-size: 20px; color: #4285f4; }
+.login-note { font-size: 10px; color: #ccc; margin-top: 20px; line-height: 1.6; }
+/* Loading */
+.loading { display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; gap: 12px; }
+.loading-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0ff4f; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+/* Logout btn */
+.logout-btn { font-size: 10px; font-weight: 700; color: #bbb; background: none; border: 1.5px solid #eee; border-radius: 20px; padding: 4px 10px; cursor: pointer; }
 
 /* Top bar */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 10px; }
@@ -742,7 +764,133 @@ window.completeGoal = (id) => {
   saveGoals(goals); editingGoalId=null; render()
 }
 
-render()
+// ── Supabase ───────────────────────────────────────────────────────────────
+const SB_URL = 'https://hxaeojspvdkdaokvzqnp.supabase.co'
+const SB_KEY = 'sb_publishable_27JJ0DpYYV3ttCiyvciiWw_-3Z0XrhS'
+const sb = supabase.createClient(SB_URL, SB_KEY)
+let currentUser = null
+
+function showLoading() {
+  document.getElementById('root').innerHTML = `<div class="loading"><div class="loading-dot"></div></div>`
+}
+
+function showLogin() {
+  document.getElementById('root').innerHTML = `
+  <div class="login-screen">
+    <div class="login-logo">MV</div>
+    <div class="login-sub">Track your body prep, work,<br>and energy — every day.</div>
+    <button class="login-btn" onclick="signIn()">
+      <i class="ti ti-brand-google"></i> Sign in with Google
+    </button>
+    <div class="login-note">Your data is private and synced<br>across all your devices.</div>
+  </div>`
+}
+
+window.signIn = async () => {
+  await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: location.href }
+  })
+}
+
+window.signOut = async () => {
+  await sb.auth.signOut()
+  currentUser = null
+  showLogin()
+}
+
+async function syncFromSupabase() {
+  if (!currentUser) return
+  const uid = currentUser.id
+  const [{ data: logs }, { data: goalRows }, { data: intentRows }] = await Promise.all([
+    sb.from('logs').select('date,data').eq('user_id', uid),
+    sb.from('goals').select('data').eq('user_id', uid),
+    sb.from('intentions').select('key,value').eq('user_id', uid),
+  ])
+  if (logs) logs.forEach(r => { localStorage.setItem(PFX+r.date, JSON.stringify(r.data)); data[r.date]=r.data })
+  if (goalRows && goalRows.length) { goals=goalRows.map(r=>r.data); localStorage.setItem(PFX+'goals', JSON.stringify(goals)) }
+  if (intentRows) intentRows.forEach(r => localStorage.setItem(PFX+r.key, r.value))
+}
+
+async function pushDayToSB(k, d) {
+  if (!currentUser) return
+  sb.from('logs').upsert({ user_id: currentUser.id, date: k, data: d, updated_at: new Date().toISOString() }, { onConflict: 'user_id,date' }).then()
+}
+
+async function pushGoalsToSB(g) {
+  if (!currentUser) return
+  const uid = currentUser.id
+  await sb.from('goals').delete().eq('user_id', uid)
+  if (g.length) sb.from('goals').insert(g.map(goal=>({ user_id: uid, goal_id: goal.id, data: goal, updated_at: new Date().toISOString() }))).then()
+}
+
+async function pushIntentToSB(key, value) {
+  if (!currentUser) return
+  sb.from('intentions').upsert({ user_id: currentUser.id, key, value, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' }).then()
+}
+
+// Patch save functions to also push to Supabase
+const _origUpdDay = updDay
+window.updDay = function(patch) {
+  const k=toKey(sel), u={...dd(),...patch}
+  saveDay(k, u); data={...data,[k]:u}
+  pushDayToSB(k, u)
+}
+const _origSaveGoals = saveGoals
+window.saveGoals = function(g) {
+  try { localStorage.setItem(PFX+'goals', JSON.stringify(g)) } catch {}
+  pushGoalsToSB(g)
+}
+const _origSaveMonthly = saveMonthly
+window.saveMonthly = function(mk, v) {
+  try { localStorage.setItem(PFX+'m_'+mk, v) } catch {}
+  pushIntentToSB('m_'+mk, v)
+}
+const _origSaveWeekly = saveWeekly
+window.saveWeekly = function(wk, v) {
+  try { localStorage.setItem(PFX+'w_'+wk, v) } catch {}
+  pushIntentToSB('w_'+wk, v)
+}
+
+// Patch render to add logout button
+const _origRender = render
+window.render = function() {
+  const isToday=sameDay(sel,new Date()), s=streak()
+  document.getElementById('root').innerHTML = `
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="wordmark">MV</span>
+      ${s>1?`<div class="streak-badge"><i class="ti ti-flame"></i><span>${s}-day streak</span></div>`:''}
+    </div>
+    <div class="topbar-right">
+      ${!isToday?`<button class="today-btn" onclick="goToday()">Today</button>`:''}
+      <div class="vtabs">
+        <button class="vtab${view==='day'?' on':''}" onclick="setView('day')">Day</button>
+        <button class="vtab${view==='week'?' on':''}" onclick="setView('week')">Week</button>
+      </div>
+      ${currentUser?`<button class="logout-btn" onclick="signOut()"><i class="ti ti-logout" style="font-size:12px"></i></button>`:''}
+    </div>
+  </div>
+  ${view==='day' ? dayHTML() : weekHTML()}`
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  showLoading()
+  const { data: { session } } = await sb.auth.getSession()
+  currentUser = session?.user || null
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    currentUser = session?.user || null
+    if (currentUser) { await syncFromSupabase(); render() }
+    else { showLogin() }
+  })
+
+  if (currentUser) { await syncFromSupabase(); render() }
+  else { showLogin() }
+}
+
+init()
 </script>
 </body>
 </html>
