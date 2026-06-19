@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MV Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #e0e0dc; font-family: -apple-system, 'Helvetica Neue', sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 20px 0 40px; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input, textarea, button { font-family: inherit; }
+textarea { resize: none; }
+
+/* Phone shell */
+.phone { width: 390px; background: #f4f4f0; border-radius: 44px; border: 8px solid #c8c8c4; box-shadow: 0 30px 80px rgba(0,0,0,0.18), inset 0 0 0 1px rgba(0,0,0,0.05); overflow: hidden; }
+.notch-bar { height: 28px; background: #e8e8e4; display: flex; align-items: center; justify-content: center; }
+.notch-pill { width: 80px; height: 10px; background: #c0c0bc; border-radius: 10px; }
+.screen { height: 780px; overflow-y: auto; overflow-x: hidden; background: #f4f4f0; scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.pad { padding: 0 16px 80px; }
+
+/* Top bar */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 10px; }
+.wordmark { font-size: 18px; font-weight: 800; color: #111; letter-spacing: -0.5px; }
+.streak-badge { display: flex; align-items: center; gap: 4px; background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 20px; padding: 4px 10px; }
+.streak-badge i { font-size: 13px; color: #f97316; }
+.streak-badge span { font-size: 10px; font-weight: 700; color: #c05000; }
+.topbar-right { display: flex; align-items: center; gap: 7px; }
+.today-btn { font-size: 10px; font-weight: 700; color: #111; background: #e0ff4f; border: none; border-radius: 20px; padding: 5px 11px; cursor: pointer; }
+.vtabs { display: flex; gap: 4px; }
+.vtab { padding: 5px 13px; border-radius: 20px; border: 1.5px solid #ddd; font-size: 11px; font-weight: 700; cursor: pointer; background: #fff; color: #999; transition: all .15s; }
+.vtab.on { background: #111; color: #fff; border-color: #111; }
+
+/* Goals — Hero */
+.hero { background: #fff; border-radius: 18px; padding: 16px; margin-bottom: 8px; border: 1px solid #e8e8e8; }
+.hero-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 11px; }
+.hero-left { flex: 1; min-width: 0; }
+.goal-cat-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 5px; }
+.goal-cat-tag i { font-size: 11px; }
+.hero-name { font-size: 19px; font-weight: 800; color: #111; letter-spacing: -0.3px; line-height: 1.2; }
+.hero-desc { font-size: 10px; color: #bbb; margin-top: 3px; }
+.hero-date { font-size: 10px; color: #bbb; margin-top: 4px; }
+.cdown { border-radius: 13px; padding: 9px 12px; text-align: center; min-width: 62px; flex-shrink: 0; margin-left: 12px; }
+.cdown-n { font-size: 28px; font-weight: 800; color: #111; line-height: 1; }
+.cdown-l { font-size: 9px; letter-spacing: .05em; text-transform: uppercase; margin-top: 2px; color: #555; }
+.cdown.active { background: #e0ff4f; }
+.cdown.soon { background: #ffd0d0; }
+.cdown.soon .cdown-n { color: #c00; }
+.cdown.soon .cdown-l { color: #900; }
+.cdown.ongoing { background: #f0f0ec; }
+.cdown.ongoing .cdown-n { font-size: 15px; color: #aaa; padding-top: 5px; }
+.hero-edit-btn { font-size: 10px; font-weight: 700; color: #bbb; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; padding: 0; margin-top: 6px; align-self: flex-end; }
+.hero-edit-btn i { font-size: 11px; }
+.log-chips { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 11px; border-top: 1px solid #f0f0f0; margin-top: 11px; min-height: 22px; }
+.chip { font-size: 10px; font-weight: 600; color: #555; background: #f0f0ec; border-radius: 20px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px; }
+.chip i { font-size: 11px; color: #aaa; }
+.chip-empty { font-size: 10px; color: #ccc; font-style: italic; }
+.energy-row { display: flex; align-items: center; gap: 7px; margin-top: 11px; padding-top: 11px; border-top: 1px solid #f0f0f0; }
+.energy-row-lbl { font-size: 10px; color: #bbb; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.edots { display: flex; gap: 5px; flex: 1; }
+.edot { flex: 1; height: 32px; border-radius: 7px; border: 1.5px solid #eee; background: #fafafa; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.edot i { font-size: 15px; color: #ddd; transition: color .15s; }
+
+/* Goal edit form */
+.goal-edit { background: #fafafa; border-radius: 14px; padding: 14px; margin-bottom: 9px; border: 1px solid #e8e8e8; }
+.ge-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ge-title { font-size: 12px; font-weight: 700; color: #888; }
+.ge-close { background: none; border: none; cursor: pointer; font-size: 20px; color: #ccc; line-height: 1; padding: 0; }
+.ge-field { margin-bottom: 9px; }
+.ge-lbl { font-size: 9px; color: #bbb; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+.ge-inp { width: 100%; background: #fff; border: 1.5px solid #e8e8e8; border-radius: 8px; color: #111; font-size: 13px; padding: 9px 12px; outline: none; transition: border-color .15s; }
+.ge-inp:focus { border-color: #bbb; }
+.cat-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+.cat-tab { font-size: 10px; font-weight: 700; padding: 4px 11px; border-radius: 20px; border: 1.5px solid #eee; background: #fafafa; cursor: pointer; color: #aaa; transition: all .15s; }
+.ge-actions { display: flex; gap: 6px; margin-top: 11px; }
+.ge-btn { flex: 1; padding: 9px; border-radius: 9px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; transition: all .15s; }
+.ge-save { background: #111; color: #fff; }
+.ge-cancel { background: #eee; color: #666; }
+.ge-done { background: #f0ffe0; color: #4a7000; border: 1px solid #c8e080; }
+
+/* Secondary goals */
+.sec-goals-row { display: flex; gap: 7px; margin-bottom: 11px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.sec-goals-row::-webkit-scrollbar { display: none; }
+.sgoal { background: #fff; border-radius: 13px; padding: 11px 12px; border: 1px solid #e8e8e8; flex-shrink: 0; min-width: 124px; max-width: 165px; cursor: pointer; transition: border-color .15s; }
+.sgoal:hover { border-color: #ccc; }
+.sgoal-cat { font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+.sgoal-cat i { font-size: 11px; }
+.sgoal-name { font-size: 12px; font-weight: 700; color: #333; line-height: 1.3; margin-bottom: 4px; }
+.sgoal-d { font-size: 11px; font-weight: 700; }
+.sgoal-ongoing { font-size: 10px; color: #bbb; }
+.add-goal-btn { background: #f7f7f4; border: 1.5px dashed #ddd; border-radius: 13px; padding: 11px 15px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #bbb; white-space: nowrap; transition: all .15s; }
+.add-goal-btn:hover { border-color: #aaa; color: #888; }
+.add-goal-btn i { font-size: 14px; }
+
+/* Week strip */
+.wstrip { display: flex; gap: 4px; margin-bottom: 14px; }
+.daybtn { flex: 1; background: #fff; border: 1.5px solid #eee; border-radius: 11px; padding: 7px 3px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: all .15s; }
+.daybtn.sel { background: #111; border-color: #111; }
+.daybtn.tod:not(.sel) { border-color: #111; }
+.dn { font-size: 10px; font-weight: 600; color: #ccc; }
+.daybtn.sel .dn, .daybtn.tod:not(.sel) .dn { color: inherit; }
+.daybtn.sel .dn { color: #aaa; }
+.daybtn.tod:not(.sel) .dn { color: #111; }
+.dd { font-size: 12px; font-weight: 700; color: #999; }
+.daybtn.sel .dd { color: #fff; }
+.daybtn.tod:not(.sel) .dd { color: #111; }
+.dpip { width: 5px; height: 5px; border-radius: 50%; background: #eee; margin-top: 1px; }
+.daybtn.sel .dpip { background: rgba(255,255,255,.2); }
+.pip-some { background: #ccc; }
+.pip-good { background: #5a8a00; }
+.date-lbl { font-size: 11px; color: #bbb; margin-bottom: 13px; }
+
+/* Focus banner — always visible at top */
+.focus-banner { margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+.focus-pill { display: flex; align-items: flex-start; gap: 10px; background: #fff; border-radius: 13px; padding: 11px 13px; border: 1px solid #e8e8e8; }
+.focus-pill-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.focus-pill-icon i { font-size: 14px; }
+.focus-pill-body { flex: 1; min-width: 0; }
+.focus-pill-label { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+.focus-pill-text { font-size: 13px; font-weight: 600; color: #333; line-height: 1.4; }
+.focus-pill-empty { font-size: 12px; color: #ccc; font-style: italic; }
+.focus-pill-edit { font-size: 10px; font-weight: 700; color: #bbb; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 3px; padding: 0; flex-shrink: 0; margin-top: 2px; }
+.focus-pill-edit i { font-size: 11px; }
+.focus-pill-locked { font-size: 10px; color: #ddd; flex-shrink: 0; margin-top: 3px; display: flex; align-items: center; }
+.focus-pill-locked i { font-size: 12px; }
+/* Inline edit for focus items */
+.focus-edit { background: #fafafa; border-radius: 13px; padding: 13px; margin-bottom: 10px; border: 1px solid #e0e0e0; }
+.focus-edit-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.focus-edit-title { font-size: 11px; font-weight: 700; color: #888; }
+.focus-edit-close { background: none; border: none; cursor: pointer; font-size: 20px; color: #ccc; line-height: 1; padding: 0; }
+.focus-edit-ta { width: 100%; background: #fff; border: 1.5px solid #e8e8e8; border-radius: 9px; color: #333; font-size: 13px; padding: 10px 12px; outline: none; line-height: 1.6; transition: border-color .15s; }
+.focus-edit-ta:focus { border-color: #bbb; }
+.focus-edit-save { margin-top: 9px; width: 100%; padding: 9px; border-radius: 9px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; background: #111; color: #fff; }
+
+/* Sections */
+.sec { background: #fff; border-radius: 15px; padding: 15px; margin-bottom: 11px; border: 1px solid #e8e8e8; }
+.sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+.sec-ico { font-size: 15px; color: #aaa; }
+.sec-title { font-size: 12px; font-weight: 700; color: #111; }
+.sec-sub { font-size: 10px; color: #ccc; margin-left: auto; }
+
+/* Meal grid */
+.meal-grid { display: flex; gap: 6px; margin-bottom: 11px; }
+.meal-card { flex: 1; background: #fafafa; border-radius: 10px; padding: 10px 6px; cursor: pointer; border: 1.5px solid #eee; transition: all .15s; text-align: center; }
+.meal-card.ck { border-color: #c0e000; background: #f5ffe0; }
+.meal-card i { font-size: 18px; display: block; margin-bottom: 4px; color: #ddd; transition: color .15s; }
+.meal-card.ck i { color: #7a9a00; }
+.meal-name { font-size: 10px; font-weight: 700; color: #ccc; transition: color .15s; }
+.meal-card.ck .meal-name { color: #5a7a00; }
+.meal-desc { font-size: 9px; color: #ddd; margin-top: 2px; line-height: 1.3; transition: color .15s; }
+.meal-card.ck .meal-desc { color: #8aaa20; }
+
+/* Check rows */
+.crow { display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 8px; cursor: pointer; transition: background .12s; }
+.crow:hover { background: #fafafa; }
+.crow.ck { background: #f7ffe0; }
+.cbox { width: 20px; height: 20px; border-radius: 5px; border: 2px solid #e8e8e8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
+.crow.ck .cbox { background: #d4e800; border-color: #d4e800; }
+.cbox i { font-size: 12px; color: #222; display: none; }
+.crow.ck .cbox i { display: block; }
+.crow-ico { font-size: 14px; color: #ddd; width: 18px; text-align: center; flex-shrink: 0; }
+.crow.ck .crow-ico { color: #aaa; }
+.crow-lbl { font-size: 13px; color: #ccc; flex: 1; transition: color .15s; }
+.crow.ck .crow-lbl { color: #333; }
+
+/* Weekly body check */
+.wcheck { background: #fffde7; border: 1.5px solid #fff176; border-radius: 14px; padding: 13px 15px; margin-bottom: 11px; }
+.wcheck-top { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+.wcheck-icon { width: 34px; height: 34px; background: #e0ff4f; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.wcheck-icon i { font-size: 18px; color: #555; }
+.wcheck-title { font-size: 13px; font-weight: 700; color: #333; }
+.wcheck-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
+.wcheck-fields { display: flex; gap: 8px; }
+.wf { flex: 1; background: #fff; border-radius: 10px; padding: 10px 11px; border: 1px solid #f0e87a; }
+.wf-lbl { font-size: 9px; color: #bbb; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+.wf-inp { width: 100%; background: transparent; border: none; color: #111; font-size: 16px; font-weight: 800; outline: none; }
+.wf-inp::placeholder { color: #ddd; font-weight: 400; font-size: 14px; }
+.wf-unit { font-size: 9px; color: #ccc; margin-top: 2px; }
+
+/* Work section */
+.wl-block { margin-bottom: 5px; }
+.wl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.wl-label { display: flex; align-items: center; gap: 6px; }
+.wl-label i { font-size: 14px; color: #bbb; }
+.wl-label span { font-size: 11px; font-weight: 700; color: #888; }
+.wl-hrs { display: flex; align-items: center; gap: 4px; background: #f4f4f0; border-radius: 7px; padding: 4px 9px; border: 1px solid #eee; }
+.wl-hrs input { width: 38px; background: transparent; border: none; outline: none; font-size: 13px; font-weight: 700; text-align: right; color: #1d4ed8; }
+.wl-hrs.mkt input { color: #7c3aed; }
+.wl-hrs span { font-size: 11px; color: #aaa; font-weight: 600; }
+.wl-ta { width: 100%; background: #fafafa; border: 1.5px solid #eee; border-radius: 9px; color: #333; font-size: 13px; padding: 10px 12px; outline: none; line-height: 1.6; transition: border-color .15s; }
+.wl-ta:focus { border-color: #bbb; }
+.wl-ta.has { border-color: #d8d8d8; background: #fff; }
+.work-div { height: 1px; background: #f4f4f0; margin: 13px 0; }
+.total-row { display: flex; align-items: center; justify-content: space-between; background: #f7f7f4; border-radius: 9px; padding: 9px 13px; border: 1px solid #eee; margin-top: 11px; }
+.total-lbl { font-size: 11px; color: #aaa; display: flex; align-items: center; gap: 5px; }
+.total-lbl i { font-size: 13px; }
+.total-val { font-size: 13px; font-weight: 800; color: #1d4ed8; }
+.total-sub { font-size: 10px; color: #aaa; font-weight: 400; margin-left: 4px; }
+
+/* Energy section */
+.energy-grid { display: flex; gap: 5px; margin-top: 2px; }
+.ebtn { flex: 1; height: 34px; border-radius: 8px; border: 1.5px solid #eee; background: #fafafa; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.ebtn i { font-size: 15px; color: #ddd; transition: color .15s; }
+.note-inp { width: 100%; background: #fafafa; border: 1.5px solid #eee; border-radius: 9px; color: #555; font-size: 13px; padding: 10px 12px; outline: none; line-height: 1.6; margin-top: 11px; transition: border-color .15s; }
+.note-inp:focus { border-color: #bbb; }
+
+/* Week view */
+.wk-stat-cards { display: flex; gap: 7px; margin-bottom: 13px; }
+.wkc { flex: 1; background: #fff; border-radius: 11px; padding: 12px; text-align: center; border: 1px solid #eee; }
+.wkc-l { font-size: 9px; color: #bbb; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 3px; }
+.wkc-v { font-size: 20px; font-weight: 800; color: #111; }
+.wkc-s { font-size: 9px; color: #ccc; margin-top: 2px; }
+.sub-hd { font-size: 9px; color: #bbb; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin: 13px 0 8px; padding-top: 11px; border-top: 1px solid #f0f0f0; }
+.sub-hd.nt { border-top: none; padding-top: 0; margin-top: 0; }
+.log-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 7px 0; font-size: 11px; border-bottom: .5px solid #f4f4f4; gap: 10px; }
+.log-row:last-child { border-bottom: none; }
+.lr-day { color: #aaa; flex-shrink: 0; width: 56px; }
+.lr-val { color: #333; flex: 1; text-align: right; line-height: 1.5; }
+.lr-val.empty { color: #ddd; }
+.lr-hrs { font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.hist-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: .5px solid #f4f4f4; }
+.hist-item:last-child { border-bottom: none; }
+.hist-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; margin-top: 4px; }
+.hist-name { font-size: 12px; font-weight: 700; color: #333; }
+.hist-meta { font-size: 10px; color: #bbb; margin-top: 2px; }
+.hist-done { background: #5a8a00; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch-bar"><div class="notch-pill"></div></div>
+  <div class="screen" id="screen">
+    <div class="pad" id="root"></div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const DAYS_L = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+const DAYS_S = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MEALS = [
+  { id: 'am', name: 'Morning', desc: 'Oatmeal + Fruit', icon: 'ti-sun' },
+  { id: 'pm', name: 'Lunch',   desc: 'Regular Meal',    icon: 'ti-bowl' },
+  { id: 'ev', name: 'Evening', desc: 'Protein Shake',   icon: 'ti-moon' },
+]
+const WORKOUT = [
+  { id: 'wt', label: 'Weight Training',         icon: 'ti-barbell' },
+  { id: 'cd', label: 'Cardio',                  icon: 'ti-run' },
+  { id: 'st', label: 'Stretching / Flexibility', icon: 'ti-stretching' },
+  { id: 'wk', label: 'Walk 7,000+ Steps',        icon: 'ti-walk' },
+]
+const ENERGY = [
+  { v: 1, label: 'Crashed', color: '#ef4444', icon: 'ti-battery-off' },
+  { v: 2, label: 'Low',     color: '#f97316', icon: 'ti-battery-1' },
+  { v: 3, label: 'Okay',    color: '#eab308', icon: 'ti-battery-2' },
+  { v: 4, label: 'Good',    color: '#22c55e', icon: 'ti-battery-3' },
+  { v: 5, label: 'Peak',    color: '#3b82f6', icon: 'ti-bolt' },
+]
+const CAT_ICONS  = { Body:'ti-barbell', Music:'ti-music', Marketing:'ti-device-mobile', Show:'ti-microphone-2', Finance:'ti-coin', Other:'ti-target' }
+const CAT_COLORS = { Body:'#5a8a00', Music:'#1d4ed8', Marketing:'#7c3aed', Show:'#c2410c', Finance:'#0f766e', Other:'#666' }
+const PFX = 'mvt7_'
+
+// ── Date utils ─────────────────────────────────────────────────────────────
+function toKey(d) { return d.toISOString().slice(0,10) }
+function addDays(d, n) { const x=new Date(d); x.setDate(x.getDate()+n); return x }
+function startOfWeek(d) { const x=new Date(d), day=x.getDay(), diff=day===0?-6:1-day; x.setDate(x.getDate()+diff); return x }
+function weekDays(d) { const m=startOfWeek(d); return Array.from({length:7},(_,i)=>addDays(m,i)) }
+function fmtMD(d) { return `${d.getMonth()+1}/${d.getDate()}` }
+function fmtFull(d) { return `${DAYS_L[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}` }
+function sameDay(a, b) { return toKey(a)===toKey(b) }
+function isMonday(d) { return d.getDay()===1 }
+function daysUntil(dateStr) { if(!dateStr) return null; return Math.ceil((new Date(dateStr)-new Date())/864e5) }
+function uid() { return Math.random().toString(36).slice(2,8) }
+function isLastDayOfMonth(d) { const n=new Date(d); n.setDate(d.getDate()+1); return n.getMonth()!==d.getMonth() }
+function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` }
+function weekKey(d) { return toKey(startOfWeek(d)) }
+
+// ── Storage ────────────────────────────────────────────────────────────────
+function defDay() { return { meal:{}, workout:{}, musicLog:'', musicHrs:'', marketingLog:'', marketingHrs:'', energy:0, note:'', weight:'', waist:'' } }
+function loadDay(k) { try { const r=localStorage.getItem(PFX+k); return r?JSON.parse(r):null } catch { return null } }
+function saveDay(k, d) { try { localStorage.setItem(PFX+k, JSON.stringify(d)) } catch {} }
+function loadAll() {
+  const out={}
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i)
+    if(k&&k.startsWith(PFX)&&!k.includes('goals')&&!k.includes('intentions')) {
+      const key=k.slice(PFX.length); out[key]=loadDay(key)
+    }
+  }
+  return out
+}
+function loadGoals() {
+  try {
+    const r=localStorage.getItem(PFX+'goals')
+    if(r) return JSON.parse(r)
+  } catch {}
+  return [{ id:'g1', name:'MV Shoot Prep', desc:'Maintain Muscle · Reduce Body Fat', category:'Body', targetDate:'2026-07-25', startDate:'2026-06-01', completedAt:null, archived:false }]
+}
+function saveGoals(g) { try { localStorage.setItem(PFX+'goals', JSON.stringify(g)) } catch {} }
+function loadMonthly(mk) { try { const r=localStorage.getItem(PFX+'m_'+mk); return r||'' } catch { return '' } }
+function saveMonthly(mk,v) { try { localStorage.setItem(PFX+'m_'+mk, v) } catch {} }
+function loadWeekly(wk) { try { const r=localStorage.getItem(PFX+'w_'+wk); return r||'' } catch { return '' } }
+function saveWeekly(wk,v) { try { localStorage.setItem(PFX+'w_'+wk, v) } catch {} }
+// legacy migration (one-time)
+;(()=>{ try { const r=localStorage.getItem(PFX+'intentions'); if(r){const o=JSON.parse(r);if(o.monthly)saveMonthly(monthKey(new Date()),o.monthly);if(o.weekly)saveWeekly(weekKey(new Date()),o.weekly);localStorage.removeItem(PFX+'intentions')} } catch {} })()
+
+// ── State ──────────────────────────────────────────────────────────────────
+let sel = new Date()
+let view = 'day'
+let data = loadAll()
+let goals = loadGoals()
+let editingGoalId = null
+let showAddGoal = false
+let editingFocus = null  // 'monthly' | 'weekly' | null
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function dd() { return data[toKey(sel)] || defDay() }
+function updDay(patch) {
+  const k=toKey(sel), u={...dd(),...patch}
+  saveDay(k, u)
+  data={...data,[k]:u}
+}
+function togChk(sec, id, val) { const d=dd(); updDay({[sec]:{...d[sec],[id]:val}}) }
+
+function activeGoals() {
+  return goals.filter(g=>!g.archived&&!g.completedAt).sort((a,b)=>{
+    if(!a.targetDate&&!b.targetDate) return 0
+    if(!a.targetDate) return 1
+    if(!b.targetDate) return -1
+    return new Date(a.targetDate)-new Date(b.targetDate)
+  })
+}
+function archivedGoals() { return goals.filter(g=>g.archived||g.completedAt) }
+function heroGoal() { return activeGoals()[0]||null }
+
+function actLvl(d) {
+  if(!d) return 0
+  return Object.values(d.meal||{}).filter(Boolean).length +
+         Object.values(d.workout||{}).filter(Boolean).length +
+         (d.musicLog?2:0) + (d.marketingLog?2:0)
+}
+function streak() {
+  let s=0
+  for(let i=0;i<60;i++){
+    const k=toKey(addDays(new Date(),-i))
+    if(actLvl(data[k])>0) s++; else if(i>0) break
+  }
+  return s
+}
+
+function logChips(d) {
+  const chips=[]
+  MEALS.forEach(m=>{ if(d.meal[m.id]) chips.push({icon:'ti-sun',label:m.name}) })
+  WORKOUT.forEach(w=>{ if(d.workout[w.id]) chips.push({icon:w.icon,label:w.label.split('/')[0].trim()}) })
+  if(d.musicLog||d.musicHrs) chips.push({icon:'ti-music',label:`Music${d.musicHrs?' '+d.musicHrs+'h':''}`})
+  if(d.marketingLog||d.marketingHrs) chips.push({icon:'ti-device-mobile',label:`Marketing${d.marketingHrs?' '+d.marketingHrs+'h':''}`})
+  if(!chips.length) return '<span class="chip-empty">Nothing logged yet</span>'
+  return chips.map(c=>`<span class="chip"><i class="ti ${c.icon}"></i>${c.label}</span>`).join('')
+}
+
+// ── Goal edit form ─────────────────────────────────────────────────────────
+function goalEditHTML(g) {
+  const cur = g||{name:'',desc:'',category:'Body',targetDate:''}
+  const cats = Object.keys(CAT_ICONS)
+  return `<div class="goal-edit">
+    <div class="ge-header">
+      <span class="ge-title">${g?'Edit goal':'New goal'}</span>
+      <button class="ge-close" onclick="cancelEdit()">×</button>
+    </div>
+    <div class="ge-field">
+      <div class="ge-lbl">Goal name</div>
+      <input class="ge-inp" id="ge-name" placeholder="e.g. EP Release, Tour prep..." value="${esc(cur.name)}">
+    </div>
+    <div class="ge-field">
+      <div class="ge-lbl">Description (optional)</div>
+      <input class="ge-inp" id="ge-desc" placeholder="e.g. Finish 6 tracks, book 3 shows..." value="${esc(cur.desc||'')}">
+    </div>
+    <div class="ge-field">
+      <div class="ge-lbl">Category</div>
+      <div class="cat-tabs" id="ge-cat-tabs">
+        ${cats.map(c=>`<button class="cat-tab" id="ct-${c}"
+          style="${cur.category===c?`background:${CAT_COLORS[c]}22;border-color:${CAT_COLORS[c]};color:${CAT_COLORS[c]}`:''}"
+          onclick="selCat('${c}')">${c}</button>`).join('')}
+      </div>
+      <input type="hidden" id="ge-cat" value="${esc(cur.category)}">
+    </div>
+    <div class="ge-field">
+      <div class="ge-lbl">Target date (optional)</div>
+      <input class="ge-inp" id="ge-date" type="date" value="${cur.targetDate||''}">
+    </div>
+    <div class="ge-actions">
+      ${g?`<button class="ge-btn ge-done" onclick="completeGoal('${g.id}')"><i class="ti ti-check"></i> Done</button>`:''}
+      <button class="ge-btn ge-cancel" onclick="cancelEdit()">Cancel</button>
+      <button class="ge-btn ge-save" onclick="saveGoal('${g?g.id:''}')">Save</button>
+    </div>
+  </div>`
+}
+
+function esc(s) { return (s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;') }
+
+// ── Focus banner ───────────────────────────────────────────────────────────
+function focusBannerHTML() {
+  const mk = monthKey(sel), wk = weekKey(sel)
+  const monthly = loadMonthly(mk), weekly = loadWeekly(wk)
+  const canEditMonthly = isLastDayOfMonth(sel)
+  const canEditWeekly = isMonday(sel)
+
+  if (editingFocus === 'monthly') {
+    return `<div class="focus-edit">
+      <div class="focus-edit-hd">
+        <span class="focus-edit-title">Monthly focus — ${MONTHS[sel.getMonth()]} ${sel.getFullYear()}</span>
+        <button class="focus-edit-close" onclick="closeFocusEdit()">×</button>
+      </div>
+      <textarea class="focus-edit-ta" id="focus-ta" rows="3" placeholder="What do you want this month to be about?">${esc(monthly)}</textarea>
+      <button class="focus-edit-save" onclick="saveFocus('monthly','${mk}')">Save</button>
+    </div>`
+  }
+  if (editingFocus === 'weekly') {
+    return `<div class="focus-edit">
+      <div class="focus-edit-hd">
+        <span class="focus-edit-title">Weekly intention — week of ${fmtMD(startOfWeek(sel))}</span>
+        <button class="focus-edit-close" onclick="closeFocusEdit()">×</button>
+      </div>
+      <textarea class="focus-edit-ta" id="focus-ta" rows="3" placeholder="What do you want this week to be about?">${esc(weekly)}</textarea>
+      <button class="focus-edit-save" onclick="saveFocus('weekly','${wk}')">Save</button>
+    </div>`
+  }
+
+  if (!monthly && !weekly) return ''
+
+  let html = '<div class="focus-banner">'
+  if (monthly) {
+    html += `<div class="focus-pill">
+      <div class="focus-pill-icon" style="background:#f0ffe0"><i class="ti ti-calendar-month" style="color:#5a8a00"></i></div>
+      <div class="focus-pill-body">
+        <div class="focus-pill-label" style="color:#7aaa00">This month</div>
+        <div class="focus-pill-text">${esc(monthly)}</div>
+      </div>
+      ${canEditMonthly
+        ? `<button class="focus-pill-edit" onclick="openFocusEdit('monthly')"><i class="ti ti-pencil"></i> Edit</button>`
+        : `<span class="focus-pill-locked"><i class="ti ti-lock" style="color:#ddd"></i></span>`}
+    </div>`
+  }
+  if (weekly) {
+    html += `<div class="focus-pill">
+      <div class="focus-pill-icon" style="background:#eff6ff"><i class="ti ti-calendar-week" style="color:#1d4ed8"></i></div>
+      <div class="focus-pill-body">
+        <div class="focus-pill-label" style="color:#3b82f6">This week</div>
+        <div class="focus-pill-text">${esc(weekly)}</div>
+      </div>
+      ${canEditWeekly
+        ? `<button class="focus-pill-edit" onclick="openFocusEdit('weekly')"><i class="ti ti-pencil"></i> Edit</button>`
+        : `<span class="focus-pill-locked"><i class="ti ti-lock" style="color:#ddd"></i></span>`}
+    </div>`
+  }
+  html += '</div>'
+  return html
+}
+
+// ── Goals HTML ─────────────────────────────────────────────────────────────
+function goalsHTML() {
+  let html = ''
+  if(showAddGoal) { html += goalEditHTML(null); return html }
+  if(editingGoalId) { const g=goals.find(x=>x.id===editingGoalId); if(g){ html+=goalEditHTML(g); return html } }
+
+  const hero = heroGoal()
+  const secondary = activeGoals().slice(1)
+  const d = dd()
+
+  if(hero) {
+    const dU = daysUntil(hero.targetDate)
+    const col = CAT_COLORS[hero.category]||'#666'
+    const ico = CAT_ICONS[hero.category]||'ti-target'
+    const cdownClass = dU===null?'ongoing':dU<=7?'soon':'active'
+    html += `<div class="hero">
+      <div class="hero-top">
+        <div class="hero-left">
+          <div class="goal-cat-tag" style="color:${col}"><i class="ti ${ico}"></i> ${hero.category}</div>
+          <div class="hero-name">${esc(hero.name)}</div>
+          ${hero.desc?`<div class="hero-desc">${esc(hero.desc)}</div>`:''}
+          ${hero.targetDate?`<div class="hero-date">${new Date(hero.targetDate).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end">
+          ${dU!==null
+            ? `<div class="cdown ${cdownClass}"><div class="cdown-n">${dU}</div><div class="cdown-l">days left</div></div>`
+            : `<div class="cdown ongoing"><div class="cdown-n"><i class="ti ti-infinity"></i></div><div class="cdown-l">ongoing</div></div>`}
+          <button class="hero-edit-btn" onclick="editGoal('${hero.id}')"><i class="ti ti-pencil"></i> Edit</button>
+        </div>
+      </div>
+      <div class="log-chips" id="log-chips">${logChips(d)}</div>
+      <div class="energy-row">
+        <span class="energy-row-lbl">Energy</span>
+        <div class="edots">${ENERGY.map(e=>`<div class="edot" onclick="updE(${e.v})"
+          style="border-color:${d.energy===e.v?e.color:'#eee'};background:${d.energy===e.v?e.color+'15':'#fafafa'}">
+          <i class="ti ${e.icon}" style="color:${d.energy===e.v?e.color:'#ddd'}"></i>
+        </div>`).join('')}</div>
+      </div>
+    </div>`
+  }
+
+  // Secondary goals row (always show add button)
+  html += `<div class="sec-goals-row">`
+  secondary.forEach(g=>{
+    const dU=daysUntil(g.targetDate), col=CAT_COLORS[g.category]||'#666', ico=CAT_ICONS[g.category]||'ti-target'
+    html += `<div class="sgoal" onclick="editGoal('${g.id}')">
+      <div class="sgoal-cat" style="color:${col}"><i class="ti ${ico}"></i> ${g.category}</div>
+      <div class="sgoal-name">${esc(g.name)}</div>
+      ${dU!==null?`<div class="sgoal-d" style="color:${dU<=7?'#ef4444':col}">D-${dU}</div>`:`<div class="sgoal-ongoing">Ongoing</div>`}
+    </div>`
+  })
+  html += `<button class="add-goal-btn" onclick="startAdd()"><i class="ti ti-plus"></i> Add goal</button></div>`
+
+  return html
+}
+
+// ── Week strip ─────────────────────────────────────────────────────────────
+function wstripHTML() {
+  const days=weekDays(sel), today=new Date()
+  return `<div class="wstrip">${days.map(d=>{
+    const k=toKey(d), isSel=sameDay(d,sel), isToday=sameDay(d,today)
+    const lvl=actLvl(data[k]||null)
+    const pip=data[k]?(lvl>=5?'pip-good':'pip-some'):''
+    return `<button class="daybtn${isSel?' sel':''}${isToday?' tod':''}" onclick="selDay('${k}')">
+      <span class="dn">${DAYS_S[d.getDay()][0]}</span>
+      <span class="dd">${fmtMD(d)}</span>
+      <div class="dpip ${pip}"></div>
+    </button>`
+  }).join('')}</div>`
+}
+
+// ── Day view ───────────────────────────────────────────────────────────────
+function dayHTML() {
+  const d=dd(), isMon=isMonday(sel), isLastDay=isLastDayOfMonth(sel)
+  const mh=parseFloat(d.musicHrs||0)||0, kh=parseFloat(d.marketingHrs||0)||0
+  const mk=monthKey(sel), wk=weekKey(sel)
+  const monthly=loadMonthly(mk), weekly=loadWeekly(wk)
+
+  // Show write prompts on the right day if nothing written yet
+  const monthlyPrompt = isLastDay && !monthly
+  const weeklyPrompt  = isMon && !weekly
+
+  return `
+  ${focusBannerHTML()}
+  ${(monthlyPrompt||weeklyPrompt)&&!editingFocus?`<div class="focus-banner">
+    ${monthlyPrompt?`<div class="focus-pill" style="cursor:pointer;border-style:dashed" onclick="openFocusEdit('monthly')">
+      <div class="focus-pill-icon" style="background:#f0ffe0"><i class="ti ti-calendar-month" style="color:#5a8a00"></i></div>
+      <div class="focus-pill-body">
+        <div class="focus-pill-label" style="color:#7aaa00">This month</div>
+        <div class="focus-pill-empty">Set your monthly focus for ${MONTHS[sel.getMonth()]}…</div>
+      </div>
+      <span style="font-size:18px;color:#ccc;flex-shrink:0">+</span>
+    </div>`:''}
+    ${weeklyPrompt?`<div class="focus-pill" style="cursor:pointer;border-style:dashed" onclick="openFocusEdit('weekly')">
+      <div class="focus-pill-icon" style="background:#eff6ff"><i class="ti ti-calendar-week" style="color:#1d4ed8"></i></div>
+      <div class="focus-pill-body">
+        <div class="focus-pill-label" style="color:#3b82f6">This week</div>
+        <div class="focus-pill-empty">Set your weekly intention…</div>
+      </div>
+      <span style="font-size:18px;color:#ccc;flex-shrink:0">+</span>
+    </div>`:''}
+  </div>`:''}
+  ${goalsHTML()}
+  ${wstripHTML()}
+  ${isMon?`<div class="wcheck">
+    <div class="wcheck-top">
+      <div class="wcheck-icon"><i class="ti ti-camera"></i></div>
+      <div><div class="wcheck-title">Weekly body check</div><div class="wcheck-sub">Same time, same pose, same lighting.</div></div>
+    </div>
+    <div class="wcheck-fields">
+      <div class="wf"><div class="wf-lbl">Weight</div><input class="wf-inp" type="number" step="0.1" placeholder="62.5" value="${d.weight||''}" oninput="fld('weight',this.value)"><div class="wf-unit">kg</div></div>
+      <div class="wf"><div class="wf-lbl">Waist</div><input class="wf-inp" type="number" step="0.5" placeholder="75.0" value="${d.waist||''}" oninput="fld('waist',this.value)"><div class="wf-unit">cm</div></div>
+    </div>
+  </div>`:'' }
+  <div class="date-lbl">${fmtFull(sel)}</div>
+
+  <div class="sec">
+    <div class="sec-head"><i class="sec-ico ti ti-barbell"></i><span class="sec-title">Body Prep</span><span class="sec-sub">Log what you did</span></div>
+    <div class="meal-grid">
+      ${MEALS.map(m=>`<div class="meal-card${d.meal[m.id]?' ck':''}" onclick="tog('meal','${m.id}',${!d.meal[m.id]})">
+        <i class="ti ${m.icon}"></i>
+        <div class="meal-name">${m.name}</div>
+        <div class="meal-desc">${m.desc}</div>
+      </div>`).join('')}
+    </div>
+    ${WORKOUT.map(w=>`<div class="crow${d.workout[w.id]?' ck':''}" onclick="tog('workout','${w.id}',${!d.workout[w.id]})">
+      <div class="cbox"><i class="ti ti-check"></i></div>
+      <i class="crow-ico ti ${w.icon}"></i>
+      <span class="crow-lbl">${w.label}</span>
+    </div>`).join('')}
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><i class="sec-ico ti ti-pencil"></i><span class="sec-title">Work Session</span></div>
+    <div class="wl-block">
+      <div class="wl-head">
+        <div class="wl-label"><i class="ti ti-music"></i><span>Music</span></div>
+        <div class="wl-hrs"><input type="number" step="0.5" placeholder="0" value="${d.musicHrs||''}" oninput="fld('musicHrs',this.value)"><span>h</span></div>
+      </div>
+      <textarea class="wl-ta${d.musicLog?' has':''}" rows="2" placeholder="What did you work on? e.g. mixed EP track 3, wrote 2 hooks" oninput="fld('musicLog',this.value)">${esc(d.musicLog||'')}</textarea>
+    </div>
+    <div class="work-div"></div>
+    <div class="wl-block">
+      <div class="wl-head">
+        <div class="wl-label"><i class="ti ti-device-mobile"></i><span>Marketing</span></div>
+        <div class="wl-hrs mkt"><input type="number" step="0.5" placeholder="0" value="${d.marketingHrs||''}" oninput="fld('marketingHrs',this.value)"><span>h</span></div>
+      </div>
+      <textarea class="wl-ta${d.marketingLog?' has':''}" rows="2" placeholder="What did you post / create / reach out about?" oninput="fld('marketingLog',this.value)">${esc(d.marketingLog||'')}</textarea>
+    </div>
+    ${(mh+kh)>0?`<div class="total-row">
+      <span class="total-lbl"><i class="ti ti-clock"></i> Total today</span>
+      <span class="total-val">${(mh+kh).toFixed(1)}h <span class="total-sub">(${mh}h music · ${kh}h mkt)</span></span>
+    </div>`:''}
+  </div>
+
+  <div class="sec">
+    <div class="sec-head">
+      <i class="sec-ico ti ti-activity"></i><span class="sec-title">Energy</span>
+      <div style="display:flex;gap:5px;margin-left:auto">
+        ${ENERGY.map(e=>`<div class="ebtn" onclick="updE(${e.v})"
+          style="border-color:${d.energy===e.v?e.color:'#eee'};background:${d.energy===e.v?e.color+'15':'#fafafa'}">
+          <i class="ti ${e.icon}" style="color:${d.energy===e.v?e.color:'#ddd'}"></i>
+        </div>`).join('')}
+      </div>
+    </div>
+    <textarea class="note-inp" rows="2" placeholder="One win, or one thing you'd do differently..." oninput="fld('note',this.value)">${esc(d.note||'')}</textarea>
+  </div>`
+}
+
+// ── Week view ──────────────────────────────────────────────────────────────
+function weekHTML() {
+  const days=weekDays(sel), keys=days.map(d=>toKey(d)), dayArr=keys.map(k=>data[k]||null)
+  const eVals=dayArr.filter(d=>d&&d.energy>0).map(d=>d.energy)
+  const avgE=eVals.length?(eVals.reduce((a,b)=>a+b,0)/eVals.length).toFixed(1):'-'
+  const totalMusic=dayArr.reduce((s,d)=>{const h=parseFloat(d?.musicHrs||0);return s+(isNaN(h)?0:h)},0)
+  const totalMkt=dayArr.reduce((s,d)=>{const h=parseFloat(d?.marketingHrs||0);return s+(isNaN(h)?0:h)},0)
+  const arch=archivedGoals()
+
+  return `
+  ${focusBannerHTML()}
+  ${wstripHTML()}
+  <div class="sec">
+    <div class="sec-head"><i class="sec-ico ti ti-chart-bar"></i><span class="sec-title">Week at a glance</span></div>
+    <div class="wk-stat-cards">
+      <div class="wkc"><div class="wkc-l">Music</div><div class="wkc-v" style="color:#1d4ed8">${totalMusic.toFixed(1)}h</div><div class="wkc-s">this week</div></div>
+      <div class="wkc"><div class="wkc-l">Marketing</div><div class="wkc-v" style="color:#7c3aed">${totalMkt.toFixed(1)}h</div><div class="wkc-s">this week</div></div>
+      <div class="wkc"><div class="wkc-l">Energy avg</div><div class="wkc-v">${avgE}</div><div class="wkc-s">out of 5</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><i class="sec-ico ti ti-music"></i><span class="sec-title">Music log</span></div>
+    ${days.map((d,i)=>{const log=dayArr[i]?.musicLog,hrs=dayArr[i]?.musicHrs;return`<div class="log-row"><span class="lr-day">${DAYS_S[d.getDay()]} ${fmtMD(d)}</span><span class="lr-val${log?'':' empty'}">${log?esc(log):'—'}</span><span class="lr-hrs" style="color:${hrs?'#1d4ed8':'#ddd'}">${hrs?hrs+'h':'—'}</span></div>`}).join('')}
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><i class="sec-ico ti ti-device-mobile"></i><span class="sec-title">Marketing log</span></div>
+    ${days.map((d,i)=>{const log=dayArr[i]?.marketingLog,hrs=dayArr[i]?.marketingHrs;return`<div class="log-row"><span class="lr-day">${DAYS_S[d.getDay()]} ${fmtMD(d)}</span><span class="lr-val${log?'':' empty'}">${log?esc(log):'—'}</span><span class="lr-hrs" style="color:${hrs?'#7c3aed':'#ddd'}">${hrs?hrs+'h':'—'}</span></div>`}).join('')}
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><i class="sec-ico ti ti-flag"></i><span class="sec-title">Active goals</span></div>
+    ${activeGoals().map(g=>{
+      const dU=daysUntil(g.targetDate),col=CAT_COLORS[g.category]||'#666'
+      return`<div class="hist-item">
+        <div class="hist-dot" style="background:${col}"></div>
+        <div><div class="hist-name">${esc(g.name)}</div>
+        <div class="hist-meta">${g.category}${g.targetDate?' · target '+new Date(g.targetDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}${dU!==null?' · D-'+dU:' · Ongoing'}</div></div>
+      </div>`}).join('')||'<div style="font-size:11px;color:#ccc">No active goals</div>'}
+    ${arch.length?`<div class="sub-hd">Completed</div>
+    ${arch.map(g=>`<div class="hist-item">
+      <div class="hist-dot hist-done"></div>
+      <div><div class="hist-name" style="color:#888">${esc(g.name)}</div>
+      <div class="hist-meta">${g.category} · ${g.startDate||'?'} → ${g.completedAt||g.targetDate||'?'}</div></div>
+    </div>`).join('')}`:''}
+  </div>`
+}
+
+// ── Full render ────────────────────────────────────────────────────────────
+function render() {
+  const isToday=sameDay(sel,new Date()), s=streak()
+  document.getElementById('root').innerHTML = `
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="wordmark">MV</span>
+      ${s>1?`<div class="streak-badge"><i class="ti ti-flame"></i><span>${s}-day streak</span></div>`:''}
+    </div>
+    <div class="topbar-right">
+      ${!isToday?`<button class="today-btn" onclick="goToday()">Today</button>`:''}
+      <div class="vtabs">
+        <button class="vtab${view==='day'?' on':''}" onclick="setView('day')">Day</button>
+        <button class="vtab${view==='week'?' on':''}" onclick="setView('week')">Week</button>
+      </div>
+    </div>
+  </div>
+  ${view==='day' ? dayHTML() : weekHTML()}`
+}
+
+// ── Event handlers ─────────────────────────────────────────────────────────
+window.tog = (sec,id,val) => { togChk(sec,id,val); const c=document.getElementById('log-chips'); if(c)c.innerHTML=logChips(dd()); }
+window.fld = (f,v) => { updDay({[f]:v}); const c=document.getElementById('log-chips'); if(c)c.innerHTML=logChips(dd()); }
+window.updE = (v) => { updDay({energy:v}); render() }
+window.openFocusEdit = (type) => { editingFocus=type; render(); setTimeout(()=>{ const t=document.getElementById('focus-ta'); if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length)} },50) }
+window.closeFocusEdit = () => { editingFocus=null; render() }
+window.saveFocus = (type, key) => {
+  const val=(document.getElementById('focus-ta').value||'').trim()
+  if(type==='monthly') saveMonthly(key, val)
+  else saveWeekly(key, val)
+  editingFocus=null; render()
+}
+window.selDay = (k) => { sel=new Date(k+'T12:00:00'); render() }
+window.setView = (v) => { view=v; render(); document.getElementById('screen').scrollTop=0 }
+window.goToday = () => { sel=new Date(); render() }
+window.editGoal = (id) => { editingGoalId=id; showAddGoal=false; render() }
+window.startAdd = () => { showAddGoal=true; editingGoalId=null; render() }
+window.cancelEdit = () => { editingGoalId=null; showAddGoal=false; render() }
+window.selCat = (cat) => {
+  document.getElementById('ge-cat').value=cat
+  document.querySelectorAll('.cat-tab').forEach(b=>{
+    const isSel=b.textContent===cat, col=CAT_COLORS[cat]
+    b.style.background=isSel?col+'22':''
+    b.style.borderColor=isSel?col:'#eee'
+    b.style.color=isSel?col:'#aaa'
+  })
+}
+window.saveGoal = (id) => {
+  const name=(document.getElementById('ge-name').value||'').trim()
+  if(!name) return
+  const patch={
+    name,
+    desc:(document.getElementById('ge-desc').value||'').trim(),
+    category:document.getElementById('ge-cat').value||'Other',
+    targetDate:document.getElementById('ge-date').value||null,
+  }
+  if(id) { goals=goals.map(g=>g.id===id?{...g,...patch}:g) }
+  else { goals.push({id:uid(),...patch,startDate:toKey(new Date()),completedAt:null,archived:false}) }
+  saveGoals(goals); editingGoalId=null; showAddGoal=false; render()
+}
+window.completeGoal = (id) => {
+  goals=goals.map(g=>g.id===id?{...g,completedAt:toKey(new Date()),archived:true}:g)
+  saveGoals(goals); editingGoalId=null; render()
+}
+
+render()
+</script>
+</body>
+</html>
