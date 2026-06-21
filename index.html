@@ -247,6 +247,14 @@ textarea { resize: none; }
 .hist-name { font-size: 12px; font-weight: 700; color: #333; }
 .hist-meta { font-size: 10px; color: #bbb; margin-top: 2px; }
 .hist-done { background: #5a8a00; }
+/* Plan cards */
+.plan-card { background: #fff; border-radius: 15px; padding: 13px 15px; margin-bottom: 11px; border: 1px solid #e8e8e8; }
+.plan-head { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; }
+.plan-head i { font-size: 15px; }
+.plan-head span { font-size: 12px; font-weight: 700; color: #111; }
+.plan-ta { width: 100%; background: #fafafa; border: 1.5px solid #eee; border-radius: 9px; color: #333; font-size: 13px; padding: 10px 12px; outline: none; line-height: 1.7; transition: border-color .15s; }
+.plan-ta:focus { border-color: #bbb; }
+.plan-ta.has { background: #fff; border-color: #e0e0e0; }
 </style>
 </head>
 <body>
@@ -300,7 +308,7 @@ function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padSt
 function weekKey(d) { return toKey(startOfWeek(d)) }
 
 // ── Storage ────────────────────────────────────────────────────────────────
-function defDay() { return { meal:{}, workout:{}, musicLog:'', musicHrs:'', marketingLog:'', marketingHrs:'', energy:0, note:'', weight:'', waist:'' } }
+function defDay() { return { meal:{}, workout:{}, musicLog:'', musicHrs:'', marketingLog:'', marketingHrs:'', energy:0, note:'', weight:'', waist:'', todayPlan:'', tomorrowPlan:'' } }
 function loadDay(k) { try { const r=localStorage.getItem(PFX+k); return r?JSON.parse(r):null } catch { return null } }
 function saveDay(k, d) { try { localStorage.setItem(PFX+k, JSON.stringify(d)) } catch {} }
 function loadAll() {
@@ -597,6 +605,11 @@ function dayHTML() {
   </div>`:'' }
   <div class="date-lbl">${fmtFull(sel)}</div>
 
+  <div class="plan-card">
+    <div class="plan-head"><i class="ti ti-list-check" style="color:#e0a000"></i><span>Today's plan</span></div>
+    <textarea class="plan-ta${d.todayPlan?' has':''}" rows="3" placeholder="What do you want to get done today?" oninput="fld('todayPlan',this.value)">${esc(d.todayPlan||'')}</textarea>
+  </div>
+
   <div class="sec">
     <div class="sec-head"><i class="sec-ico ti ti-barbell"></i><span class="sec-title">Body Prep</span><span class="sec-sub">Log what you did</span></div>
     <div class="meal-grid">
@@ -647,6 +660,11 @@ function dayHTML() {
       </div>
     </div>
     <textarea class="note-inp" rows="2" placeholder="One win, or one thing you'd do differently..." oninput="fld('note',this.value)">${esc(d.note||'')}</textarea>
+  </div>
+
+  <div class="plan-card">
+    <div class="plan-head"><i class="ti ti-calendar-plus" style="color:#7c3aed"></i><span>Tomorrow</span></div>
+    <textarea class="plan-ta${d.tomorrowPlan?' has':''}" rows="3" placeholder="What's on for tomorrow?" oninput="fld('tomorrowPlan',this.value)">${esc(d.tomorrowPlan||'')}</textarea>
   </div>`
 }
 
