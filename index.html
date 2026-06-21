@@ -285,7 +285,7 @@ const CAT_COLORS = { Body:'#5a8a00', Music:'#1d4ed8', Marketing:'#7c3aed', Show:
 const PFX = 'mvt7_'
 
 // ── Date utils ─────────────────────────────────────────────────────────────
-function toKey(d) { return d.toISOString().slice(0,10) }
+function toKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 function addDays(d, n) { const x=new Date(d); x.setDate(x.getDate()+n); return x }
 function startOfWeek(d) { const x=new Date(d), day=x.getDay(), diff=day===0?-6:1-day; x.setDate(x.getDate()+diff); return x }
 function weekDays(d) { const m=startOfWeek(d); return Array.from({length:7},(_,i)=>addDays(m,i)) }
@@ -812,9 +812,13 @@ async function syncFromSupabase() {
   if (intentRows) intentRows.forEach(r => localStorage.setItem(PFX+r.key, r.value))
 }
 
+let _sbTimer = null
 async function pushDayToSB(k, d) {
   if (!currentUser) return
-  sb.from('logs').upsert({ user_id: currentUser.id, date: k, data: d, updated_at: new Date().toISOString() }, { onConflict: 'user_id,date' }).then()
+  clearTimeout(_sbTimer)
+  _sbTimer = setTimeout(() => {
+    sb.from('logs').upsert({ user_id: currentUser.id, date: k, data: d, updated_at: new Date().toISOString() }, { onConflict: 'user_id,date' }).then()
+  }, 1500)
 }
 
 async function pushGoalsToSB(g) {
