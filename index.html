@@ -548,7 +548,11 @@ function goalsHTML() {
 // ── Week strip ─────────────────────────────────────────────────────────────
 function wstripHTML() {
   const days=weekDays(sel), today=new Date()
-  return `<div class="wstrip">${days.map(d=>{
+  const prevK=toKey(addDays(startOfWeek(sel),-1))
+  const nextK=toKey(addDays(startOfWeek(sel),7))
+  return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:14px">
+    <button style="width:28px;height:28px;border-radius:50%;border:1.5px solid #eee;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="selDay('${prevK}')"><i class="ti ti-chevron-left" style="font-size:14px;color:#999"></i></button>
+    <div class="wstrip" style="margin-bottom:0;flex:1">${days.map(d=>{
     const k=toKey(d), isSel=sameDay(d,sel), isToday=sameDay(d,today)
     const lvl=actLvl(data[k]||null)
     const pip=data[k]?(lvl>=5?'pip-good':'pip-some'):''
@@ -557,7 +561,9 @@ function wstripHTML() {
       <span class="dd">${fmtMD(d)}</span>
       <div class="dpip ${pip}"></div>
     </button>`
-  }).join('')}</div>`
+  }).join('')}</div>
+    <button style="width:28px;height:28px;border-radius:50%;border:1.5px solid #eee;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" onclick="selDay('${nextK}')"><i class="ti ti-chevron-right" style="font-size:14px;color:#999"></i></button>
+  </div>`
 }
 
 // ── Day view ───────────────────────────────────────────────────────────────
