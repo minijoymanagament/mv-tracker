@@ -255,6 +255,28 @@ textarea { resize: none; }
 .plan-ta { width: 100%; background: #fafafa; border: 1.5px solid #eee; border-radius: 9px; color: #333; font-size: 13px; padding: 10px 12px; outline: none; line-height: 1.7; transition: border-color .15s; }
 .plan-ta:focus { border-color: #bbb; }
 .plan-ta.has { background: #fff; border-color: #e0e0e0; }
+/* Goal check-in */
+.gchecks { margin-bottom: 11px; }
+.gchecks-title { font-size: 10px; font-weight: 700; color: #bbb; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.gchecks-title i { font-size: 13px; }
+.gcheck { background: #fff; border-radius: 13px; padding: 12px 13px; margin-bottom: 7px; border: 1px solid #e8e8e8; }
+.gcheck-top { display: flex; align-items: center; gap: 9px; }
+.gcheck-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.gcheck-name { font-size: 12px; font-weight: 700; color: #333; flex: 1; }
+.gcheck-btns { display: flex; gap: 4px; }
+.gcheck-btn { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid #eee; background: #fafafa; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.gcheck-btn i { font-size: 14px; color: #ddd; }
+.gcheck-btn.done { border-color: #c0e000; background: #f0ffe0; }
+.gcheck-btn.done i { color: #5a8a00; }
+.gcheck-btn.miss { border-color: #ffc0c0; background: #fff5f5; }
+.gcheck-btn.miss i { color: #e00; }
+.gcheck-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f4f4f4; }
+.gcheck-lbl { font-size: 9px; color: #bbb; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 3px; }
+.gcheck-ta { width: 100%; background: #fafafa; border: 1.5px solid #eee; border-radius: 8px; color: #333; font-size: 12px; padding: 8px 10px; outline: none; line-height: 1.5; transition: border-color .15s; }
+.gcheck-ta:focus { border-color: #bbb; }
+.gcheck-extend { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: #7c3aed; background: #f5f0ff; border: 1px solid #e8d8ff; border-radius: 8px; padding: 5px 10px; cursor: pointer; margin-top: 8px; }
+.gcheck-extend i { font-size: 12px; }
+.gcheck-status { font-size: 10px; font-weight: 700; margin-left: auto; }
 </style>
 </head>
 <body>
@@ -308,7 +330,7 @@ function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padSt
 function weekKey(d) { return toKey(startOfWeek(d)) }
 
 // ── Storage ────────────────────────────────────────────────────────────────
-function defDay() { return { meal:{}, workout:{}, musicLog:'', musicHrs:'', marketingLog:'', marketingHrs:'', energy:0, note:'', weight:'', waist:'', todayPlan:'', tomorrowPlan:'' } }
+function defDay() { return { meal:{}, workout:{}, musicLog:'', musicHrs:'', marketingLog:'', marketingHrs:'', energy:0, note:'', weight:'', waist:'', todayPlan:'', tomorrowPlan:'', goalChecks:{} } }
 function loadDay(k) { try { const r=localStorage.getItem(PFX+k); return r?JSON.parse(r):null } catch { return null } }
 function saveDay(k, d) { try { localStorage.setItem(PFX+k, JSON.stringify(d)) } catch {} }
 function loadAll() {
@@ -545,6 +567,46 @@ function goalsHTML() {
   return html
 }
 
+// ── Goal check-ins ────────────────────────────────────────────────────────
+function goalChecksHTML() {
+  const ag = activeGoals()
+  if (!ag.length) return ''
+  const d = dd()
+  const checks = d.goalChecks || {}
+
+  return `<div class="gchecks">
+    <div class="gchecks-title"><i class="ti ti-clipboard-check"></i> Goal check-in</div>
+    ${ag.map(g => {
+      const c = checks[g.id] || {}
+      const col = CAT_COLORS[g.category] || '#666'
+      const isDone = c.status === 'done'
+      const isMiss = c.status === 'missed'
+      return `<div class="gcheck">
+        <div class="gcheck-top">
+          <div class="gcheck-dot" style="background:${col}"></div>
+          <span class="gcheck-name">${esc(g.name)}</span>
+          <div class="gcheck-btns">
+            <button class="gcheck-btn${isDone?' done':''}" onclick="setGCheck('${g.id}','done')"><i class="ti ti-check"></i></button>
+            <button class="gcheck-btn${isMiss?' miss':''}" onclick="setGCheck('${g.id}','missed')"><i class="ti ti-x"></i></button>
+          </div>
+        </div>
+        ${isMiss ? `<div class="gcheck-detail">
+          <div style="margin-bottom:7px">
+            <div class="gcheck-lbl">Why not?</div>
+            <textarea class="gcheck-ta" rows="2" placeholder="What got in the way?" oninput="updGCheck('${g.id}','reason',this.value)">${esc(c.reason||'')}</textarea>
+          </div>
+          <div>
+            <div class="gcheck-lbl">Lesson / takeaway</div>
+            <textarea class="gcheck-ta" rows="2" placeholder="What would you do differently?" oninput="updGCheck('${g.id}','lesson',this.value)">${esc(c.lesson||'')}</textarea>
+          </div>
+          ${g.targetDate ? `<button class="gcheck-extend" onclick="extendGoal('${g.id}')"><i class="ti ti-clock-plus"></i> Extend +7 days</button>` : ''}
+        </div>` : ''}
+        ${isDone ? `<div style="margin-top:8px;font-size:11px;color:#5a8a00;font-weight:600"><i class="ti ti-circle-check" style="font-size:13px"></i> On track today</div>` : ''}
+      </div>`
+    }).join('')}
+  </div>`
+}
+
 // ── Week strip ─────────────────────────────────────────────────────────────
 function wstripHTML() {
   const days=weekDays(sel), today=new Date()
@@ -598,6 +660,7 @@ function dayHTML() {
     </div>`:''}
   </div>`:''}
   ${goalsHTML()}
+  ${goalChecksHTML()}
   ${wstripHTML()}
   ${isMon?`<div class="wcheck">
     <div class="wcheck-top">
@@ -782,6 +845,25 @@ window.saveGoal = (id) => {
   if(id) { goals=goals.map(g=>g.id===id?{...g,...patch}:g) }
   else { goals.push({id:uid(),...patch,startDate:toKey(new Date()),completedAt:null,archived:false}) }
   saveGoals(goals); editingGoalId=null; showAddGoal=false; render()
+}
+window.setGCheck = (goalId, status) => {
+  const d = dd(), checks = {...(d.goalChecks||{})}
+  const cur = checks[goalId] || {}
+  checks[goalId] = cur.status === status ? {} : {...cur, status}
+  updDay({goalChecks: checks}); render()
+}
+window.updGCheck = (goalId, field, val) => {
+  const d = dd(), checks = {...(d.goalChecks||{})}
+  checks[goalId] = {...(checks[goalId]||{}), [field]: val}
+  updDay({goalChecks: checks})
+}
+window.extendGoal = (id) => {
+  goals = goals.map(g => {
+    if (g.id !== id || !g.targetDate) return g
+    const d = new Date(g.targetDate); d.setDate(d.getDate()+7)
+    return {...g, targetDate: toKey(d)}
+  })
+  saveGoals(goals); render()
 }
 window.completeGoal = (id) => {
   goals=goals.map(g=>g.id===id?{...g,completedAt:toKey(new Date()),archived:true}:g)
